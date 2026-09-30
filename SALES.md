@@ -3,6 +3,14 @@
 Target: **$100 USD**. Everything below assumes $0 capital — no ads, no domains, no
 inventory.
 
+## What's live
+
+| | |
+| --- | --- |
+| Source | https://github.com/ihsieh31/pastesafe |
+| Landing page | https://ihsieh31.github.io/pastesafe/ |
+| Install | `npm i -g pastesafe` — *needs an npm publish, see checklist* |
+
 ## The offer ladder
 
 $100 is a small number. A product with no audience sells zero copies, so the money has
@@ -96,13 +104,14 @@ Ordered by realistic conversion for a seller with zero followers.
 
 ## Setup checklist
 
-- [ ] `npm publish` (needs a free npm account)
-- [ ] Create a GitHub repo named `pastesafe`, push, add topics
-- [ ] Put `web/index.html` on any static host (Cloudflare Pages free tier) or
-      GitHub Pages
+Only the first two are still open.
+
+- [x] GitHub repo, public, CI green on Node 18/20/22/24
+- [x] Landing page live on GitHub Pages
+- [ ] `npm publish` — needs a free npm account, then `npm publish` in the repo
 - [ ] Open a payout account: **Payoneer** (best for TW) or **PayPal Taiwan**
-- [ ] `STRIPE_SECRET_KEY=… node setup/launch.mjs` if using Stripe, or create the
-      three products by hand on Gumroad / Lemon Squeezy
+- [ ] `STRIPE_SECRET_KEY=… node setup/launch.mjs`, or create the three products by
+      hand on Gumroad / Lemon Squeezy
 - [ ] Paste the checkout links into `web/index.html`
 - [ ] Post to 3 communities, spaced a day apart
 

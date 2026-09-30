@@ -135,3 +135,8 @@ npm test
 ```
 
 MIT
+
+---
+
+Need someone to check your repo for leaked credentials — git history included?
+See [SALES.md](SALES.md).
