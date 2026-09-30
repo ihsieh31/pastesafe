@@ -16,6 +16,11 @@ $ pb paste "AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE"
   1 secret found. PasteSafe did not send anything anywhere.
 ```
 
+That example key is the one from AWS's own documentation, and PasteSafe flags it on
+purpose — a real secret and a documentation sample are indistinguishable by pattern,
+which is exactly why the scan is worth running. Silence known-good lines with
+`// pastesafe:allow:aws.access-key-id`.
+
 - **Zero dependencies.** No telemetry, no network calls, nothing phoned home.
 - **Redaction is one-way.** There is no function in this package that can turn a
   placeholder back into a secret, so a redaction bug cannot become a second leak.

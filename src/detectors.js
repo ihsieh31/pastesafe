@@ -333,8 +333,8 @@ export const RULES = [
     severity: 'critical',
     confidence: 'pattern',
     message: 'Database connection string with a password',
-    // The username is optional: `redis://:hunter2@cache` and
-    // `postgres://admin:hunter2@db` are both common in the wild.
+    // The username is optional: `redis://:hunter2@cache` and     // pastesafe:allow:db.connection-string
+    // `postgres://admin:hunter2@db` are both common in the wild. // pastesafe:allow:db.connection-string
     pattern: /\b((?:postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|redis|rediss|amqps?|mssql|clickhouse):\/\/[^\s:/@]*:[^\s:/@]+@[^\s"'`]+)/gi,
     group: 0,
   },

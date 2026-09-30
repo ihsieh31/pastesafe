@@ -31,7 +31,8 @@ const CWE = {
 };
 
 /**
- * @param {string} uri               file path as the findings refer to it
+ * @param {string} uri               fallback artifact path, used when a finding
+ *                                   carries no `file` of its own
  * @param {object[]} findings
  * @returns {object} SARIF log
  */
@@ -75,7 +76,7 @@ export function toSarif(uri, findings) {
           locations: [
             {
               physicalLocation: {
-                artifactLocation: { uri },
+                artifactLocation: { uri: f.file ?? uri },
                 region: {
                   startLine: f.line,
                   startColumn: f.column,

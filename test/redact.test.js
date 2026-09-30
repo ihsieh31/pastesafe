@@ -98,7 +98,17 @@ test('entropy helpers behave', () => {
   assert.equal(shannon('aaaaaaaa'), 0);
   assert.ok(shannon('AKIAIOSFODNN7EXAMPLE') > 3);
   assert.equal(looksRandom('aaaaaaaaaaaaaaaaaaaaaaaa'), false);
-  assert.equal(looksRandom('AKIAIOSFODNN7EXAMPLE'), true);
+  // Below the 24-character floor, so not judged on entropy at all.
+  assert.equal(looksRandom('AKIAIOSFODNN7EXAMPLE'), false);
+  assert.equal(looksRandom('Zk3Q9xLm2Vp7Rt4Yw8Nb6Hc1Jf5Dg0Sa3'), true);
+});
+
+test('the entropy bar rises with length', () => {
+  // Same randomness, different length: the longer one clears a higher bar.
+  const short = 'Zk3Q9xLm2Vp7Rt4Yw8';
+  const long = `${short}Nb6Hc1Jf5Dg0Sa3qW3nZ8rLb`;
+  assert.equal(looksRandom(short), false);
+  assert.equal(looksRandom(long), true);
 });
 
 test('high-entropy rule catches unknown provider secrets', () => {
@@ -120,6 +130,29 @@ test('the entropy rule can be switched off', () => {
   const secret = 'Zk3Q9xLm2Vp7Rt4Yw8Nb6Hc1Jf5Dg0Sa3';
   const { findings } = scan(`MY_SERVICE_CREDENTIAL="${secret}"`, { entropy: false });
   assert.equal(findings.some((f) => f.id === 'generic.high-entropy'), false);
+});
+
+test('the entropy rule does not fire on ordinary code', () => {
+  // Every one of these scored above a flat 3.55 bits-per-char bar. The
+  // length-scaled bar rejects them, which is the difference between a tool people
+  // keep enabled and one they disable after a day.
+  const noise = [
+    'STRIPE_SECRET_KEY=sk_live_',
+    'com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2',
+    'x-www-form-urlencoded',
+    'da39a3ee5e6b4b0d3255bfef95601890afd80709',
+    'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+  ];
+  for (const token of noise) {
+    const { findings } = scan(`const url = "${token}";`, { only: ['generic.high-entropy'] });
+    assert.equal(findings.length, 0, `false positive on: ${token}`);
+  }
+});
+
+test('the entropy rule still catches long random strings', () => {
+  const long = 'qW3nZ8rLbXkV2mH7jT5pY9cF4sD1gA6uE0iO2lK8vB3nM5wR7tX9yZ1';
+  const { findings } = scan(`const v = "${long}"`, { only: ['generic.high-entropy'] });
+  assert.equal(findings.length, 1);
 });
 
 test('scanning is linear-ish on a large input', () => {

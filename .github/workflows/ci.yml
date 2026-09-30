@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['18', '20', '22', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Self-scan
+        # PasteSafe scans its own shipped code, no skips. `test/` is excluded on
+        # purpose: fixtures there contain fake secrets by design, and a scanner
+        # that missed them would be useless.
+        run: node bin/pastesafe.js src bin setup --fail-on medium
+      - run: npm test
+
+  publish-dry-run:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: https://registry.npmjs.org
+      - run: npm publish --dry-run

@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync, existsSync, chmodSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
-import { relative, resolve } from 'node:path';
+import { readFileSync, readdirSync, statSync, writeFileSync, existsSync, chmodSync } from 'node:fs';
+import { join, relative, resolve } from 'node:path';
 import process from 'node:process';
 
 import { scan } from '../src/scanner.js';
@@ -99,15 +98,69 @@ function readStdin() {
   }
 }
 
-/** Scan a git diff, which is where leaked keys actually enter a repo. */
-function stagedDiff() {
+/** Directories that never contain source worth scanning, and would be huge. */
+const SKIP_DIRS = new Set([
+  'node_modules', '.git', 'dist', 'build', 'out', 'coverage', '.next', '.nuxt',
+  'vendor', '.venv', 'venv', '__pycache__', '.terraform', 'target',
+]);
+
+const MAX_FILE_BYTES = 8 * 1024 * 1024;
+
+function* walk(dir) {
+  let entries;
   try {
-    return execFileSync('git', ['diff', '--cached', '--unified=0', '--no-color'], {
-      encoding: 'utf8',
-      maxBuffer: 64 * 1024 * 1024,
-    });
+    entries = readdirSync(dir, { withFileTypes: true });
   } catch {
-    return '';
+    return;
+  }
+  for (const entry of entries) {
+    if (entry.name.startsWith('.') && entry.name !== '.env') {
+      if (SKIP_DIRS.has(entry.name) || entry.isDirectory()) continue;
+    }
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (SKIP_DIRS.has(entry.name)) continue;
+      yield* walk(full);
+    } else if (entry.isFile()) {
+      yield full;
+    }
+  }
+}
+
+/** Expand files and directories into a flat list of readable text files. */
+function expand(targets) {
+  const out = [];
+  for (const target of targets) {
+    let st;
+    try {
+      st = statSync(target);
+    } catch {
+      process.stderr.write(`pastesafe: cannot read ${target}: no such file\n`);
+      process.exit(2);
+    }
+    if (st.isDirectory()) {
+      for (const file of walk(target)) {
+        const content = readTextSafe(file);
+        if (content !== null) out.push({ label: file, text: content });
+      }
+    } else {
+      const content = readTextSafe(target);
+      out.push({ label: target, text: content ?? '' });
+    }
+  }
+  return out;
+}
+
+/** Returns null for binary or oversized files, which we skip rather than mangle. */
+function readTextSafe(path) {
+  try {
+    const st = statSync(path);
+    if (st.size > MAX_FILE_BYTES) return null;
+    const buf = readFileSync(path);
+    if (buf.includes(0)) return null;
+    return buf.toString('utf8');
+  } catch {
+    return null;
   }
 }
 
@@ -160,16 +213,8 @@ function main() {
   const sources = [];
   if (opts.text !== null) sources.push({ label: '<text>', text: opts.text });
   for (const file of opts.files) {
-    if (file === '-') {
-      sources.push({ label: '<stdin>', text: readStdin() });
-    } else {
-      try {
-        sources.push({ label: file, text: readFileSync(file, 'utf8') });
-      } catch (err) {
-        process.stderr.write(`pastesafe: cannot read ${file}: ${err.message}\n`);
-        process.exit(2);
-      }
-    }
+    if (file === '-') sources.push({ label: '<stdin>', text: readStdin() });
+    else sources.push(...expand([file]));
   }
   if (sources.length === 0) sources.push({ label: '<stdin>', text: readStdin() });
 
@@ -182,6 +227,8 @@ function main() {
       entropy: opts.entropy,
       verified: opts.verified,
     });
+    // Every finding carries its origin so multi-file SARIF and JSON are usable.
+    for (const f of result.findings) f.file = label;
     all.push(...result.findings);
     perSource.push({ label, text, result });
   }
@@ -215,16 +262,17 @@ function main() {
       )}\n`,
     );
   } else {
+    const showFile = sources.length > 1;
     const blocks = perSource
       .filter((s) => s.result.findings.length)
       .map(
         (s) =>
-          `${process.stderr.isTTY && sources.length > 1 ? `\n${s.label}\n` : ''}` +
+          (showFile ? `${s.label}\n` : '') +
           formatText(s.text, s.result.findings, s.result.summary, {
             color: Boolean(process.stdout.isTTY),
           }),
       );
-    if (blocks.length) process.stdout.write(`${blocks.join('\n')}\n`);
+    if (blocks.length) process.stdout.write(`${blocks.join('\n\n')}\n`);
     else process.stdout.write('  CLEAN  no secrets or PII detected\n');
   }
 
@@ -237,4 +285,4 @@ function main() {
 
 main();
 
-export { stagedDiff, parseArgs };
+export { parseArgs, expand, readTextSafe };
