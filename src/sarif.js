@@ -3,7 +3,7 @@
  * (or any SARIF-consuming CI viewer) with no extra glue.
  */
 
-const TOOL_URI = 'https://github.com/pastesafe/pastesafe';
+const TOOL_URI = 'https://github.com/ihsieh31/pastesafe';
 
 const LEVEL = { critical: 'error', high: 'error', medium: 'warning', low: 'note' };
 

@@ -1,5 +1,9 @@
 # PasteSafe
 
+[![CI](https://github.com/ihsieh31/pastesafe/actions/workflows/ci.yml/badge.svg)](https://github.com/ihsieh31/pastesafe/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/pastesafe.svg)](https://www.npmjs.com/package/pastesafe)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Scan anything before you paste it into an LLM.**
 
 You are one `Ctrl+V` away from shipping a production key to a third party. PasteSafe
