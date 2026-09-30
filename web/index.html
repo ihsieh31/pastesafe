@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PasteSafe — stop leaking keys into ChatGPT</title>
+<meta name="description" content="Scan anything before you paste it into an LLM. Catches leaked API keys, tokens and PII in prompts, code, logs and diffs. Zero dependencies, nothing phoned home.">
+<style>
+  :root{
+    --bg:#0a0b0e; --panel:#111318; --line:#1e2129; --text:#e6e8ee; --dim:#8b90a0;
+    --red:#ff5c5c; --amber:#ffb454; --green:#3ddc97; --blue:#5c9dff; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  .wrap{max-width:880px;margin:0 auto;padding:0 24px}
+  header{padding:64px 0 32px;border-bottom:1px solid var(--line)}
+  h1{font-size:44px;line-height:1.1;margin:0 0 12px;letter-spacing:-.02em}
+  .sub{color:var(--dim);font-size:19px;max-width:60ch;margin:0}
+  .pill{display:inline-block;font:12px/1 var(--mono);color:var(--green);border:1px solid #1d3a2c;background:#0e1a14;padding:6px 10px;border-radius:99px;margin-bottom:20px}
+  h2{font-size:24px;margin:56px 0 12px;letter-spacing:-.01em}
+  h3{font-size:17px;margin:28px 0 8px}
+  p{margin:0 0 14px}
+  code{font-family:var(--mono);font-size:.9em;background:var(--panel);border:1px solid var(--line);padding:2px 6px;border-radius:4px;color:#c8cce0}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;overflow-x:auto;margin:0 0 20px}
+  pre code{background:none;border:none;padding:0;font-size:13.5px;line-height:1.7}
+  .c-red{color:var(--red)} .c-amber{color:var(--amber)} .c-green{color:var(--green)} .c-dim{color:var(--dim)} .c-blue{color:var(--blue)}
+  table{width:100%;border-collapse:collapse;margin:0 0 20px;font-size:15px}
+  td,th{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim);font-weight:500;font-size:13px;text-transform:uppercase;letter-spacing:.05em}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:0 0 20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+  .card h4{margin:0 0 6px;font-size:15px}
+  .card p{color:var(--dim);font-size:14px;margin:0}
+  .cta{background:linear-gradient(180deg,#14161d,#0f1116);border:1px solid var(--line);border-radius:12px;padding:28px;margin:44px 0}
+  .btn{display:inline-block;background:var(--green);color:#06210f;font-weight:600;padding:13px 22px;border-radius:8px;text-decoration:none;font-size:15px}
+  .btn.ghost{background:none;color:var(--text);border:1px solid var(--line);font-weight:500}
+  .btnrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  ul{padding-left:20px} li{margin-bottom:7px}
+  footer{border-top:1px solid var(--line);padding:28px 0 64px;color:var(--dim);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="pill">zero dependencies · no telemetry · offline</span>
+  <h1>You are one Ctrl+V away<br>from leaking a production key.</h1>
+  <p class="sub">PasteSafe reads what you're about to paste into an LLM and tells you what would leak — then hands you back a copy with every secret replaced.</p>
+</header>
+
+<h2>What it looks like</h2>
+<pre><code><span class="c-dim">$</span> pbpaste | pastesafe
+
+  <span class="c-red">CRITICAL</span> <span class="c-amber">aws.access-key-id</span>        1:19
+           AWS access key ID
+           AWS_ACCESS_KEY_ID=<span class="c-red">«aws.access-key-id#fba7f486»</span>
+
+  <span class="c-red">CRITICAL</span> <span class="c-amber">github.pat</span>             2:14
+           GitHub personal access token
+           GITHUB_TOKEN=<span class="c-red">«github.pat#0867c742»</span>
+
+  <span class="c-amber">HIGH</span>     <span class="c-amber">pii.credit-card</span>        5:15 <span class="c-green">verified</span>
+           Payment card number
+           CUSTOMER_CARD=<span class="c-amber">«pii.credit-card#ed688096»</span>
+
+  <span class="c-green">CLEAN</span>    nothing else in 4.2 KB</code></pre>
+
+<p>Every secret in the report is already replaced. So is the clipboard version you actually paste. So is the JSON you pipe into your editor. So is the SARIF you upload to a public repo.</p>
+
+<h2>Why you don't need to tune it</h2>
+<p>A linter that cries wolf gets switched off in a week, and then it protects nothing. So every rule that <em>can</em> be checked is checked:</p>
+<div class="grid">
+  <div class="card"><h4>Luhn checksum</h4><p>Card numbers must actually validate. <code>4242…4243</code> never fires.</p></div>
+  <div class="card"><h4>Mod-10 checksum</h4><p>Taiwan national IDs must validate against the real algorithm.</p></div>
+  <div class="card"><h4>Structure decode</h4><p>JWTs need a decodable header, and expired ones are flagged separately.</p></div>
+  <div class="card"><h4>Placeholder filter</h4><p><code>${API_KEY}</code>, <code>changeme</code>, <code>your_token</code> are never findings.</p></div>
+</div>
+
+<h2>Catches</h2>
+<table>
+<tr><th>Category</th><th>Examples</th></tr>
+<tr><td>Cloud &amp; LLM keys</td><td>AWS, GCP, Azure, OpenAI, Anthropic, Hugging Face, Replicate, Perplexity</td></tr>
+<tr><td>Source control &amp; CI</td><td>GitHub classic + fine-grained, GitLab, npm, PyPI</td></tr>
+<tr><td>Payments</td><td>Stripe, Shopify, Square, Braintree</td></tr>
+<tr><td>Messaging &amp; comms</td><td>Slack, Discord, Telegram, Twilio, SendGrid, Mailgun, Postmark</td></tr>
+<tr><td>Infrastructure</td><td>PEM private keys, JWTs, bearer/basic auth, DB connection strings, tokens in query strings</td></tr>
+<tr><td>PII</td><td>Card numbers, Taiwan national IDs, US SSNs, email addresses</td></tr>
+<tr><td>Anything else</td><td>A Shannon-entropy catch-all for services with no rule yet</td></tr>
+</table>
+
+<h2>Use it anywhere</h2>
+<pre><code><span class="c-blue">#</span> the clipboard — the path most leaks actually take
+<span class="c-blue">alias</span> pbpaste=<span class="c-dim">'pbpaste | pastesafe --redact | pbcopy'</span>
+<span class="c-blue">alias</span> clip=<span class="c-dim">'pbpaste | pastesafe --redact | pbcopy'</span>
+
+<span class="c-blue">#</span> a file you are about to send
+<span class="c-blue">$</span> pastesafe --redact dump.sql | pbcopy
+
+<span class="c-blue">#</span> block the commit, permanently
+<span class="c-blue">$</span> pastesafe --install-hook
+
+<span class="c-blue">#</span> GitHub code scanning
+<span class="c-blue">$</span> pastesafe --sarif --fail-on high . &gt; pastesafe.sarif</code></pre>
+
+<h2>The part that actually matters</h2>
+<p><strong>Redaction is one-way.</strong> There is no function in this package that turns a placeholder back into a secret. A bug in redaction can't become a second incident, and no output — not the report, not the JSON, not the SARIF — ever contains the raw value. Each secret gets a stable 8-character hash instead, so the same key in four places collapses to one fingerprint you can correlate without ever seeing it.</p>
+
+<div class="cta">
+  <h3 style="margin-top:0">Get PasteSafe</h3>
+  <p>MIT licensed, free forever for personal and open-source use.</p>
+  <div class="btnrow">
+    <a class="btn" href="https://www.npmjs.com/package/pastesafe">npm install -g pastesafe</a>
+    <a class="btn ghost" href="https://github.com/pastesafe/pastesafe">View source</a>
+  </div>
+</div>
+
+</div>
+
+<footer>PasteSafe — MIT licensed. Nothing is uploaded, logged, or sent anywhere. It runs and it exits.</footer>
+</body>
+</html>

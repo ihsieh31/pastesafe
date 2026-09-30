@@ -1,0 +1,38 @@
+{
+  "name": "pastesafe",
+  "version": "1.0.0",
+  "description": "Scan anything before you paste it into an LLM. Catches leaked API keys, tokens and PII in prompts, code, logs and diffs.",
+  "type": "module",
+  "bin": {
+    "pastesafe": "bin/pastesafe.js"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": [
+    "llm",
+    "prompt",
+    "security",
+    "secrets",
+    "pii",
+    "redaction",
+    "sarif",
+    "code-scanning",
+    "clipboard",
+    "chatgpt",
+    "claude"
+  ],
+  "license": "MIT"
+}
